@@ -39,7 +39,8 @@ ui <- dashboardPage(
                      menuItem('Principle component Analysis', tabName = 'pca', icon = icon('hand-o-right')),
                      menuItem('Dimension Reduction Plots', tabName = 'tplot', icon = icon('hand-o-right'),
                               menuSubItem("Compare Plots", tabName = "tsneplot"),
-                              menuSubItem("Interactive DR Plots", tabName = "intertsne")
+                              menuSubItem("Interactive DR Plots", tabName = "intertsne"),
+                              menuSubItem("Split DR Plots", tabName = "splitDR")
                               ),
                      menuItem('Biplot', tabName = 'biplot', icon = icon('hand-o-right')),
                      menuItem('3D-plot', tabName = '3dplot', icon = icon('hand-o-right')),
@@ -85,7 +86,7 @@ ui <- dashboardPage(
               box(
                 width = 12, status = "primary",solidHeader = TRUE,
                 title = "scRNA Data Sets",
-                tableOutput("datasetTable")
+                DT::dataTableOutput("datasetTable")
               )
       ),
       ######################################################################################################################################
@@ -228,6 +229,22 @@ ui <- dashboardPage(
             )
     ),#endbigeneplotTab
     ######################################################################################################################################
+    tabItem(tabName = "splitDR",
+            box(title = "Controls",solidHeader = TRUE,width=12,status='primary',
+                fluidRow(
+                  column(6,uiOutput("umapsplit")),#Dimensionality reduction method of left plot
+                  column(6,uiOutput("splitdropdown")) #Dimensionality reduction method of left plot
+                ),
+                fluidRow(
+                  column(6,checkboxInput("labelsplit", label = "Check for cell  group labelling", value = TRUE)), #Dimensionality reduction method of left plot
+                  column(6,sliderInput("splitpt", "Point Size:",min = 0, max = 5, value = 1,step=.25)) #Dimensionality reduction method of left plot
+                )),
+            box(title = "Dimension Reduction Plot",solidHeader = TRUE,width=12,status='primary',
+                plotOutput("splitdr", height = 700),
+                downloadButton('downloadsplitDR', 'Download Dimension Reduction plot')
+            )
+    ),#end of splitDR
+    ######################################################################################################################################
 
     tabItem(tabName = "biplot",
             fluidRow(
@@ -274,6 +291,9 @@ ui <- dashboardPage(
                 sliderInput("pointa", "Point Size:",min = 0, max = 5, value = 1,step=.25),
                 checkboxInput("checklabel3", label = "Check for cell  group labelling", value = TRUE),
                 checkboxInput("checkviolin", label = "Check to remove points from violin plot", value = TRUE),
+                checkboxInput("splitvln", label = "Check to split violin plot", value = FALSE),
+                conditionalPanel(
+                  condition = "input.splitvln ==true",uiOutput("vlnsplitby")),
                 hr(),
                 uiOutput("identdef"),
                 checkboxInput("setident", label = "Check to choose a different category to compare", value = FALSE),

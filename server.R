@@ -130,7 +130,7 @@ server <- function(input, output,session) {
   })
 
   #display project list in Dashboard
-  output$datasetTable<- renderTable({
+  datasetTable <- reactive({
     user=input$username
     file=read.csv('data/param.csv',stringsAsFactors = F)
     colnames(file)=c("Project Name","Project Description","Organism","Username","File type")
@@ -142,8 +142,21 @@ server <- function(input, output,session) {
       colnames(file)=c("Project Name","Project Description","Organism")
       file=file[order(file$`Project Name`),]
     }
-  }, digits = 1)
-
+  })
+  
+  output$datasetTable = DT::renderDataTable({
+    withProgress(session = session, message = 'Loading...',detail = 'Please Wait...',{
+      DT::datatable(datasetTable(),
+                    extensions = c('Buttons','Scroller'),
+                    options = list(dom = 'Bfrtip',
+                                   searchHighlight = TRUE,
+                                   pageLength = 20,
+                                   lengthMenu = list(c(30, 50, 100, 150, 200, -1), c('30', '50', '100', '150', '200', 'All')),
+                                   scrollX = TRUE,
+                                   buttons = c('copy', 'print')
+                    ),rownames=FALSE,selection = list(mode = 'single', selected =1),escape = F)
+    })
+  })
   #scrna <- reactiveValues(scrna = NULL)
 
   # observeEvent(input$load, {
@@ -695,7 +708,49 @@ server <- function(input, output,session) {
       return(plot)
     })
   })
-
+  ######################################################################################################
+  ######################################################################################################
+  ####### SPLIT DIMPLOT  ############################################################
+  ######################################################################################################
+  ######################################################################################################
+  output$umapsplit = renderUI({
+    scrna=fileload()
+    dimr=names(scrna@reductions)
+    withProgress(session = session, message = 'Generating...',detail = 'Please Wait...',{
+      selectInput("umapsplit","Dimensionality Reduction",dimr,selected = "umap")})
+  })
+  
+  #generate variable list for left plot
+  output$splitdropdown = renderUI({
+    scrna=fileload()
+    metadata=as.data.frame(scrna@meta.data) 
+    metadata=metadata %>% select(starts_with("var"))
+    var=c(colnames(metadata),"orig.ident")
+    selectInput("splitdropdown","Select option to split by",var,selected="orig.ident")
+  })
+  
+  splitdr = reactive({
+    scrna=fileload()
+    DimPlot(object = scrna,reduction=input$umapsplit,group.by = "ident",label = input$labelsplit,  pt.size = input$splitpt,label.size = 7, cols=cpallette, split.by = input$splitdropdown,ncol=2)
+    
+  })
+  #render final plot
+  output$splitdr = renderPlot({
+    withProgress(session = session, message = 'Generating...',detail = 'Please Wait...',{
+      splitdr()
+    })
+  })
+  
+  #Handler to download plot
+  output$downloadsplitDR <- downloadHandler(
+    filename = function() {
+      paste0(projectname(),"_splitDR.pdf",sep="")
+    },
+    content = function(file){
+      pdf(file,width=14,height = 8,useDingbats=FALSE)
+      plot(splitdr())
+      dev.off()
+    })
   ######################################################################################################
   ######################################################################################################
   ####### Display Biplot plot with controls ############################################################
@@ -924,7 +979,16 @@ server <- function(input, output,session) {
     selectInput("setidentlist","Choose category to compare",var,"pick one")
 
   })
-
+  
+  #Generate drop down menu for the categories starting with "var" tosplit violin plot
+  output$vlnsplitby = renderUI({
+    scrna=fileload()
+    metadata=as.data.frame(scrna@meta.data)
+    metadata=metadata %>% dplyr::select(starts_with("var_"))
+    var=c(colnames(metadata),"orig.ident")
+    selectInput("vlnsplitby","Choose category to split violin by",var,selected = "orig.ident")
+    
+  })
   #Generate drop down menu for the variables in the new ident against which the rest will be compared to find markers
   output$identa = renderUI({
     scrna=fileload()
@@ -1056,13 +1120,23 @@ server <- function(input, output,session) {
   if(input$setident==T){
         setident=input$setidentlist
       if(input$checkviolin ==T){
-      plot3=VlnPlot(object = scrna, features = markers$gene,group.by = setident,pt.size=0,cols=cpallette)
-      }else{plot3=VlnPlot(object = scrna, features = markers$gene,group.by = setident,cols=cpallette)}
+        if(input$splitvln ==T){
+          plot3=VlnPlot(object = scrna, features = markers$gene,group.by = setident,pt.size=0,cols=cpallette, split.by = input$vlnsplitby)
+        }else{plot3=VlnPlot(object = scrna, features = markers$gene,group.by = setident,pt.size=0,cols=cpallette)}
+      }else{
+        if(input$splitvln ==T){
+          plot3=VlnPlot(object = scrna, features = markers$gene,group.by = setident,cols=cpallette, split.by = input$vlnsplitby)
+          }else{plot3=VlnPlot(object = scrna, features = markers$gene,group.by = setident,cols=cpallette)}}
       plot4=RidgePlot(object = scrna, features = markers$gene,group.by = setident,cols=cpallette)
   }else{
     if(input$checkviolin ==T){
-      plot3=VlnPlot(object = scrna, features = markers$gene,pt.size=0,cols=cpallette)
-    }else{plot3=VlnPlot(object = scrna, features = markers$gene,cols=cpallette)}
+      if(input$splitvln ==T){
+        plot3=VlnPlot(object = scrna, features = markers$gene,pt.size=0,cols=cpallette,split.by = input$vlnsplitby)
+      }else{plot3=VlnPlot(object = scrna, features = markers$gene,pt.size=0,cols=cpallette)}
+    }else{
+      if(input$splitvln ==T){
+        plot3=VlnPlot(object = scrna, features = markers$gene,cols=cpallette,split.by = input$vlnsplitby)
+        }else{plot3=VlnPlot(object = scrna, features = markers$gene,cols=cpallette)}}
     plot4=RidgePlot(object = scrna, features = markers$gene,cols=cpallette)
   }
 
@@ -1141,22 +1215,6 @@ server <- function(input, output,session) {
         markers %>% group_by(cluster) %>% top_n(input$topn, avg_logFC)
         markergenes=markers$gene
       }
-#       if(input$hmpcol=="PuYl"){
-#         lowcol="darkmagenta"
-#         midcol="black"
-#         highcol="yellow"
-#       }else if(input$hmpcol=="BuGn"){
-#         lowcol="yellow"
-#         midcol="green"
-#         highcol="blue"
-#       }else if(input$hmpcol=="RdYl"){
-#         lowcol="yellow"
-#         midcol="red"
-#         highcol="black"
-#       }else if(input$hmpcol=="RdBu"){
-#         lowcol="red"
-#         midcol="white"
-#         highcol="blue"}
       p=DoHeatmap(object = scrna, features = markergenes,group.by = input$hmpgrp, group.bar= T,label=TRUE,assay="integrated")
       p2 <- add_sub(p, paste(projectname(),"_Heatmap",sep=""), x = 0.87,vpadding = grid::unit(1, "lines"),size=11)
       ggdraw(p2)
