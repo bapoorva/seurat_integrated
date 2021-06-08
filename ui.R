@@ -240,7 +240,7 @@ ui <- dashboardPage(
                   column(6,sliderInput("splitpt", "Point Size:",min = 0, max = 5, value = 1,step=.25)) #Dimensionality reduction method of left plot
                 )),
             box(title = "Dimension Reduction Plot",solidHeader = TRUE,width=12,status='primary',
-                plotOutput("splitdr", height = 700),
+                plotOutput("splitdr", height = 1200),
                 downloadButton('downloadsplitDR', 'Download Dimension Reduction plot')
             )
     ),#end of splitDR

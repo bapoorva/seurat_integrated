@@ -731,7 +731,7 @@ server <- function(input, output,session) {
   
   splitdr = reactive({
     scrna=fileload()
-    DimPlot(object = scrna,reduction=input$umapsplit,group.by = "ident",label = input$labelsplit,  pt.size = input$splitpt,label.size = 7, cols=cpallette, split.by = input$splitdropdown,ncol=2)
+    DimPlot(object = scrna,reduction=input$umapsplit,group.by = "ident",label = input$labelsplit,  pt.size = input$splitpt,label.size = 7, cols=cpallette, split.by = input$splitdropdown,ncol=3)
     
   })
   #render final plot
