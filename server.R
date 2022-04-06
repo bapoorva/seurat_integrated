@@ -143,7 +143,7 @@ server <- function(input, output,session) {
       file=file[order(file$`Project Name`),]
     }
   })
-  
+
   output$datasetTable = DT::renderDataTable({
     withProgress(session = session, message = 'Loading...',detail = 'Please Wait...',{
       DT::datatable(datasetTable(),
@@ -237,7 +237,7 @@ server <- function(input, output,session) {
    colnames(df)<- NULL
    return(df)
   })
- 
+
   prjsumm2 <- reactive({
     scrna=fileload()
     meta=scrna@meta.data
@@ -247,21 +247,21 @@ server <- function(input, output,session) {
     # c.cnt= c.cnt %>% dplyr::select(-var_cluster)
     return(c.cnt)
   })
-  
+
   output$prjsumm <- renderPrint({
     withProgress(session = session, message = 'Generating...',detail = 'Please Wait...',{
     prjsumm()
     #return(df)
     })
   })
-  
+
   output$prjsumm2 <- renderTable({
     withProgress(session = session, message = 'Generating...',detail = 'Please Wait...',{
       prjsumm2()
       #return(df)
     })
   }, caption = "Number of cells per sample per cluster",caption.placement = getOption("xtable.caption.placement", "top"))
-  
+
   #Create dropdown for commands used
   output$seucomm = renderUI({
     scrna=fileload()
@@ -719,20 +719,20 @@ server <- function(input, output,session) {
     withProgress(session = session, message = 'Generating...',detail = 'Please Wait...',{
       selectInput("umapsplit","Dimensionality Reduction",dimr,selected = "umap")})
   })
-  
+
   #generate variable list for left plot
   output$splitdropdown = renderUI({
     scrna=fileload()
-    metadata=as.data.frame(scrna@meta.data) 
+    metadata=as.data.frame(scrna@meta.data)
     metadata=metadata %>% select(starts_with("var"))
     var=c(colnames(metadata),"orig.ident")
     selectInput("splitdropdown","Select option to split by",var,selected="orig.ident")
   })
-  
+
   splitdr = reactive({
     scrna=fileload()
     DimPlot(object = scrna,reduction=input$umapsplit,group.by = "ident",label = input$labelsplit,  pt.size = input$splitpt,label.size = 7, cols=cpallette, split.by = input$splitdropdown,ncol=3)
-    
+
   })
   #render final plot
   output$splitdr = renderPlot({
@@ -740,7 +740,7 @@ server <- function(input, output,session) {
       splitdr()
     })
   })
-  
+
   #Handler to download plot
   output$downloadsplitDR <- downloadHandler(
     filename = function() {
@@ -979,7 +979,7 @@ server <- function(input, output,session) {
     selectInput("setidentlist","Choose category to compare",var,"pick one")
 
   })
-  
+
   #Generate drop down menu for the categories starting with "var" tosplit violin plot
   output$vlnsplitby = renderUI({
     scrna=fileload()
@@ -987,7 +987,7 @@ server <- function(input, output,session) {
     metadata=metadata %>% dplyr::select(starts_with("var_"))
     var=c(colnames(metadata),"orig.ident")
     selectInput("vlnsplitby","Choose category to split violin by",var,selected = "orig.ident")
-    
+
   })
   #Generate drop down menu for the variables in the new ident against which the rest will be compared to find markers
   output$identa = renderUI({
@@ -1212,7 +1212,7 @@ server <- function(input, output,session) {
       markergenes=markers$gene[1:input$heatmapgenes]
       }else if(input$shmptype =="topgene"){
         markers <- FindAllMarkers(object = scrna, only.pos = TRUE, min.pct = 0.25,thresh.use = 0.25)
-        markers %>% group_by(cluster) %>% top_n(input$topn, avg_logFC)
+        markers %>% group_by(cluster) %>% top_n(input$topn, logFC)
         markergenes=markers$gene
       }
       p=DoHeatmap(object = scrna, features = markergenes,group.by = input$hmpgrp, group.bar= T,label=TRUE,assay="integrated")
@@ -1274,7 +1274,7 @@ server <- function(input, output,session) {
       }else{
         plot3=VlnPlot(object = scrna, features = input$geneid,pt.size=0,cols=cpallette)
     }}else{plot3=VlnPlot(object = scrna, features = input$geneid,cols=cpallette)}
-    
+
     plot4=RidgePlot(object = scrna, features = input$geneid,cols=cpallette)
     row1=plot_grid(plot2,align = 'h', rel_heights = c(1, 1),axis="lr", nrow=1)
     row2=plot_grid(plot3,plot4,align = 'h', rel_heights = c(1, 1),axis="lr", nrow=1)
