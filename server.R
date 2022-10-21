@@ -546,6 +546,7 @@ server <- function(input, output,session) {
   #Based on all use input, generate plots using the right category and dimensionality reduction methods
   comptsne2 = reactive({
     scrna=fileload()
+    DefaultAssay(scrna) <- "RNA"
     metadata=as.data.frame(scrna@meta.data)
     met= sapply(metadata,is.numeric)
     tsnea=input$tsnea2
@@ -685,6 +686,7 @@ server <- function(input, output,session) {
     withProgress(session = session, message = 'Generating...',detail = 'Please Wait...',{
       pdf(NULL)
       scrna=fileload()
+      DefaultAssay(scrna) <- "RNA"
       metadata=as.data.frame(scrna@meta.data)
       met= sapply(metadata,is.numeric)
       #metadata=metadata %>% select(starts_with("var"))
@@ -1095,6 +1097,7 @@ server <- function(input, output,session) {
   #plot 2 is ridge plot of gene selected from table
   comptsne = reactive({
     scrna=fileload()
+    DefaultAssay(scrna) <- "RNA"
     metadata=as.data.frame(scrna@meta.data)
     met= sapply(metadata,is.numeric)
     validate(need(is.null(scrna@meta.data$var_cluster)==F,"var_cluster not found in meta data"))
@@ -1264,6 +1267,7 @@ server <- function(input, output,session) {
   #For any gene entered, generate a feature plot, violin plot and a ridge plot
   geplots = reactive({
     scrna=fileload()
+    DefaultAssay(scrna) <- "RNA"
     validate(need(input$geneid,"Enter the gene symbol"))
     validate(need(input$geneid %in% rownames(GetAssayData(object=scrna)),"Incorrect Gene name.Gene names are case-sensitive.Please check for typos."))
     plot2=FeaturePlot2(object = scrna, features = input$geneid, cols = c("grey","blue"),reduction = input$umapge,pt.size = input$genenid_pointsize)
@@ -1404,6 +1408,7 @@ server <- function(input, output,session) {
   #Generate plots of the chosen gene
   clustplots= reactive({
     scrna=fileload()
+    DefaultAssay(scrna) <- "RNA"
     tab=clustable()
     s=input$clustable_rows_selected
     tab=tab[s, ,drop=FALSE]
@@ -1480,7 +1485,7 @@ server <- function(input, output,session) {
       )
       genes=input$genelistfile2
     }
-    g1=DotPlot(object = scrna, features= genes,group.by=input$setdotvar)
+    g1=DotPlot(object = scrna, features= genes,group.by=input$setdotvar,assay="RNA")
     return(g1)
   })
 
